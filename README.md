@@ -46,6 +46,8 @@ This separation is deliberate: OpenUI owns the adaptive conversational surface, 
 
 The example policy models an agent that responds to compromised employee accounts. The assistant first captures identity, then asks where the agent runs (GCP Vertex AI, Azure AI Studio, AWS Bedrock, or OpenAI Enterprise), which account/project, model deployment, and region it uses. Next it selects from a mock connected MCP catalog—such as Microsoft Entra ID, GitHub Enterprise, Jira Cloud, PagerDuty, or an AWS data platform—and records an explicit action for every selected tool: allow, deny, flag, or log. Ownership, data handling, guardrails, and monitoring complete the review. This mirrors the decisions a real security team must make without connecting the demo to production systems.
 
+After MCP decisions are recorded, the chat can render a simulated risk-per-tool bar chart. Its percentages come from a deterministic demo heuristic based on action sensitivity, production usage, and the selected control—not from a real scan. The chart is deliberately labeled as illustrative and helps demonstrate the larger product idea: generated UI can turn structured context into decision support at exactly the moment the user chooses between allow, deny, flag, or log.
+
 ### Using the same approach with an existing company design system
 
 An enterprise integration would expose a curated OpenUI library backed by the company’s existing React components—for example its `Select`, `DatePicker`, `ApprovalCard`, `RiskBanner`, and form controls. The model would see their supported signatures and intent, while employees would see the same branded, accessible, tested components already used elsewhere in the product.
@@ -82,7 +84,7 @@ Validated policy tools + canonical PolicyDraft
        └── OpenUI response + live progress and summary workbench
 ```
 
-The current draft is carried in validated tool results in the conversation. On every request, the server recovers the latest valid snapshot and creates request-scoped policy tools. Gemini can request changes, but only the application can validate, merge, score, or create a policy.
+The current draft is carried in validated tool results and mirrored in a short-lived in-memory demo session so successive generated forms cannot lose earlier answers. On every request, the server creates request-scoped policy tools from that canonical draft. Gemini can request changes, but only the application can validate, merge, score, or create a policy.
 
 ## Setup
 

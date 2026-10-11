@@ -2,7 +2,7 @@ import { calculatePolicySnapshot, createEmptyPolicy, mergePolicyUpdate, policyUp
 import { tool } from "ai";
 import { z } from "zod";
 
-export function createPolicyTools(initialDraft?: PolicyDraft) {
+export function createPolicyTools(initialDraft?: PolicyDraft, onDraftChange?: (draft: PolicyDraft) => void) {
   let draft = initialDraft ?? createEmptyPolicy();
   return {
     update_policy_draft: tool({
@@ -10,6 +10,7 @@ export function createPolicyTools(initialDraft?: PolicyDraft) {
       inputSchema: policyUpdateSchema,
       execute: (update) => {
         draft = mergePolicyUpdate(draft, update);
+        onDraftChange?.(draft);
         return calculatePolicySnapshot(draft, "Policy draft updated");
       },
     }),
@@ -21,6 +22,7 @@ export function createPolicyTools(initialDraft?: PolicyDraft) {
         if (!status.readyToCreate) return { ...status, creationError: "Resolve every missing field and warning first." };
         const id = `AISP-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         draft = { ...draft, confirmed: true, createdPolicyId: id };
+        onDraftChange?.(draft);
         return calculatePolicySnapshot(draft, `Policy ${id} created`);
       },
     }),

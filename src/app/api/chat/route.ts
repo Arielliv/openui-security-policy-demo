@@ -1,4 +1,9 @@
-import { calculatePolicySnapshot, createEmptyPolicy, findLatestPolicySnapshot } from "@/lib/policy";
+import {
+  calculatePolicySnapshot,
+  calculateSimulatedToolRisk,
+  createEmptyPolicy,
+  findLatestPolicySnapshot,
+} from "@/lib/policy";
 import { compactConversation } from "@/lib/conversation";
 import { connectedMcpPrompt, policyLibrarySpec, policyPromptOptions } from "@/lib/policy-openui";
 import { createPolicyTools } from "@/lib/tools/policy-tools";
@@ -15,6 +20,8 @@ import {
 
 export const runtime = "nodejs";
 
+const demoDrafts = new Map<string, ReturnType<typeof createEmptyPolicy>>();
+
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY,
 });
@@ -28,6 +35,7 @@ Rules:
 - Whenever the user provides or corrects policy facts, call update_policy_draft before replying.
 - The current policy state is included below. Do not call a tool merely to read status.
 - Never infer owners, contacts, security decisions, limits, or dates the user did not state.
+- Do not populate optional example values on the user's behalf, even in a realistic-example flow.
 - Ask focused questions about one policy section at a time, with at most four inputs per response.
   Split larger sections into short follow-up steps. Prefer selectable OpenUI controls.
 - Guide the user through four short stages: agent setup, AI runtime + MCP access, data + safeguards,
@@ -43,6 +51,11 @@ ${connectedMcpPrompt}
 - Make milestone replies feel alive with one useful visual when data exists: show stage completion after
   agent setup, the tool-decision mix after MCP configuration, or completed versus remaining items at review.
   Do not delay an early-stage question just to render a chart, and never show a chart with invented data.
+- Once every selected MCP tool has a decision, show a horizontal bar chart using simulatedToolRisk labels
+  and scores. Title it "Simulated MCP tool risk" and include an info callout saying the percentages are
+  illustrative demo heuristics, not findings from a real security scan. Briefly point out the highest score
+  to help the user reconsider allow/deny/flag/log choices.
+  In that response, render only the risk chart; do not add a second completion chart.
 - Treat production write/delete/admin permissions, restricted data, or PII as elevated risk.
 - Call create_policy only when the latest user message explicitly confirms creation.
 - If creation is blocked, explain the exact missing fields or warnings returned by the tool.
@@ -62,13 +75,17 @@ export async function POST(req: Request) {
     );
   }
 
-  const payload = (await req.json()) as { messages?: UIMessage[] };
+  const payload = (await req.json()) as { messages?: UIMessage[]; demoSessionId?: string };
   if (!Array.isArray(payload.messages)) {
     return Response.json({ error: "messages must be an array" }, { status: 400 });
   }
 
+  const sessionId = typeof payload.demoSessionId === "string" ? payload.demoSessionId : "fallback";
+  const sessionDraft = demoDrafts.get(sessionId);
   const previousSnapshot = findLatestPolicySnapshot(payload.messages);
-  const currentSnapshot = previousSnapshot ?? calculatePolicySnapshot(createEmptyPolicy());
+  const currentSnapshot = sessionDraft
+    ? calculatePolicySnapshot(sessionDraft)
+    : previousSnapshot ?? calculatePolicySnapshot(createEmptyPolicy());
   const completedRequirements = currentSnapshot.sections.reduce((sum, section) => sum + section.completed, 0);
   const totalRequirements = currentSnapshot.sections.reduce((sum, section) => sum + section.total, 0);
   const promptState = {
@@ -88,11 +105,12 @@ export async function POST(req: Request) {
       remaining: total - completed,
       total,
     })),
+    simulatedToolRisk: calculateSimulatedToolRisk(currentSnapshot.draft),
     nextMissing: currentSnapshot.missing.slice(0, 6),
     warnings: currentSnapshot.warnings,
     readyToCreate: currentSnapshot.readyToCreate,
   };
-  const tools = createPolicyTools(previousSnapshot?.draft);
+  const tools = createPolicyTools(currentSnapshot.draft, (draft) => demoDrafts.set(sessionId, draft));
   const result = streamText({
     model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.5-flash-lite"),
     system: `${OPENUI_PROMPT}\n${POLICY_INSTRUCTIONS}\nCURRENT POLICY STATE:\n${JSON.stringify(promptState)}`,

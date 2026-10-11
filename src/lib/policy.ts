@@ -82,6 +82,30 @@ export type PolicySnapshot = {
   lastAction: string;
 };
 
+export type SimulatedToolRisk = { tool: string; score: number; level: "low" | "medium" | "high" };
+
+/** Demo-only heuristic for illustrating how decision support could appear in chat. */
+export function calculateSimulatedToolRisk(draft: PolicyDraft): SimulatedToolRisk[] {
+  const elevatedActions = /create|merge|transition|trigger|resolve|revoke|reset|write|delete|admin/i;
+  const sensitiveActions = /user|identity|session|mfa|iam|s3|data/i;
+
+  return (draft.mcp.selectedTools ?? []).map((tool) => {
+    const decision = draft.mcp.toolPolicies?.find(
+      (policy) => policy.serverId === draft.mcp.serverId && policy.tool === tool,
+    )?.decision;
+    let score = 24;
+    if (elevatedActions.test(tool)) score += 34;
+    if (sensitiveActions.test(tool)) score += 18;
+    if (draft.identity.environment === "production") score += 12;
+    if (decision === "allow") score += 8;
+    if (decision === "flag") score -= 4;
+    if (decision === "log") score -= 8;
+    if (decision === "deny") score -= 24;
+    score = Math.max(5, Math.min(95, score));
+    return { tool, score, level: score >= 70 ? "high" : score >= 40 ? "medium" : "low" };
+  });
+}
+
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
 const hasItems = (value: unknown) => Array.isArray(value) && value.length > 0;
 const isSet = (value: unknown) => value !== undefined && value !== null;

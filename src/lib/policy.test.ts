@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculatePolicySnapshot,
+  calculateSimulatedToolRisk,
   createEmptyPolicy,
   findLatestPolicySnapshot,
   mergePolicyUpdate,
@@ -91,6 +92,15 @@ describe("policy progress", () => {
     expect(snapshot.progress).toBe(100);
     expect(snapshot.warnings).toEqual([]);
     expect(snapshot.readyToCreate).toBe(true);
+  });
+
+  it("derives clearly bounded demo risk scores from tool context", () => {
+    const risks = calculateSimulatedToolRisk(completePolicy());
+    expect(risks).toEqual([
+      { tool: "lookup_user", score: 62, level: "medium" },
+      { tool: "revoke_sessions", score: 84, level: "high" },
+    ]);
+    expect(risks.every(({ score }) => score >= 5 && score <= 95)).toBe(true);
   });
 
   it("recovers a validated snapshot from an OpenUI tool message", () => {

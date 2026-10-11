@@ -12,10 +12,12 @@ import {
   vercelAIMessageFormat,
 } from "@openuidev/react-ui";
 
+const demoSessionId = crypto.randomUUID();
 const llm = fetchLLM({
   url: "/api/chat",
   streamAdapter: vercelAIAdapter(),
   messageFormat: vercelAIMessageFormat,
+  body: { demoSessionId },
 });
 
 export default function Home() {
