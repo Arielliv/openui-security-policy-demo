@@ -2,7 +2,7 @@ import librarySpec from "@/generated/spec.json";
 import { findLatestPolicySnapshot } from "@/lib/policy";
 import { promptOptions } from "@/lib/prompt-options";
 import { createPolicyTools } from "@/lib/tools/policy-tools";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateSystemPrompt } from "@openuidev/lang-core";
 import {
   convertToModelMessages,
@@ -15,11 +15,7 @@ import {
 
 export const runtime = "nodejs";
 
-const provider = createOpenAI({
-  baseURL:
-    process.env.GEMINI_BASE_URL ??
-    process.env.OPENAI_BASE_URL ??
-    "https://generativelanguage.googleapis.com/v1beta/openai/",
+const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY,
 });
 
@@ -58,10 +54,19 @@ export async function POST(req: Request) {
   const previousSnapshot = findLatestPolicySnapshot(payload.messages);
   const tools = createPolicyTools(previousSnapshot?.draft);
   const result = streamText({
-    model: provider.chat(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.8-flash"),
+    model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.8-flash"),
     system: `${generateSystemPrompt({ library: librarySpec, promptOptions })}\n${POLICY_INSTRUCTIONS}`,
     messages: await convertToModelMessages(payload.messages),
     tools,
+    providerOptions: {
+      google: {
+        thinkingConfig: {
+          thinkingLevel: "low",
+          includeThoughts: false,
+        },
+      },
+    },
+    maxOutputTokens: 2048,
     stopWhen: stepCountIs(6),
     abortSignal: req.signal,
   });

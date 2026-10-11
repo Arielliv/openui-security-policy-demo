@@ -7,7 +7,7 @@ This project is intentionally a synthetic, single-user demo. Do not enter creden
 ## What it demonstrates
 
 - OpenUI Agent Interface and streamed generative UI
-- Gemini through Google's OpenAI-compatible endpoint
+- Gemini through Vercel AI SDK's native Google provider
 - A structured, Zod-validated policy draft instead of LLM-owned state
 - Deterministic completion scoring and conditional security warnings
 - Explicit confirmation before a mock policy can be created
@@ -45,7 +45,6 @@ Create a free API key in [Google AI Studio](https://aistudio.google.com/apikey),
 ```env
 GEMINI_API_KEY=your-key
 GEMINI_MODEL=gemini-3.8-flash
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 ```
 
 Model availability and free-tier limits can change. Choose another Gemini model in `.env.local` if necessary. Free-tier prompts may be used by Google to improve its products, so only use synthetic demo data.
