@@ -54,6 +54,8 @@ export const policyPromptOptions = {
     "For MCP selection, use only the connected demo servers and tools listed in the assistant instructions.",
     "When asking about MCP tools, capture a decision for every selected tool: allow, deny, flag, or log.",
     "Use a review card after each MCP tool decision so the user can see the exact server, tool, and action recorded.",
+    "Never rely on RadioGroup defaultValue for a policy fact: untouched radio defaults are only visual in the current OpenUI runtime and may not be submitted. Use a Select without a preselected value, or require an explicit user choice.",
+    "Never treat a placeholder, first option, or helper text as a submitted value. Every policy fact must be present in the submitted form state or remain visibly incomplete.",
   ],
 };
 
