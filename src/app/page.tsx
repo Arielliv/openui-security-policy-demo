@@ -2,6 +2,7 @@
 import "@openuidev/react-ui/styles/index.css";
 
 import { PolicyProgressPanel, PolicySummaryPanel } from "@/components/policy-workbench";
+import { PolicyUserMessage } from "@/components/policy-user-message";
 import {
   AgentInterface,
   fetchLLM,
@@ -25,6 +26,7 @@ export default function Home() {
       <AgentInterface
         llm={llm}
         componentLibrary={openuiLibrary}
+        components={{ UserMessage: PolicyUserMessage }}
         agentName="Aegis Policy Assistant"
         theme={{ mode }}
         starterVariant="short"

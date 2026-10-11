@@ -268,6 +268,16 @@ body {
 .openui-agent-thread-message-loading { display: flex; align-items: center; gap: 10px; color: #718078; font-size: 11px; }
 .openui-agent-thread-message-loading::after { content: "Preparing the next policy step…"; animation: policy-loading-fade 1.4s ease-in-out infinite alternate; }
 
+.policy-plain-user-message { width: fit-content; max-width: 100%; margin-left: auto; padding: 10px 13px; border-radius: 16px; background: #eceeed; color: #1e2923; line-height: 1.45; }
+.policy-submission-message { width: min(100%, 360px); margin-left: auto; overflow: hidden; border: 1px solid #cddbd2; border-radius: 16px; background: #f7fbf8; color: #27342d; }
+.policy-submission-heading { display: flex; align-items: center; gap: 7px; padding: 10px 12px; border-bottom: 1px solid #dfe9e2; color: #2d7454; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
+.policy-submission-heading span { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #d9eee1; font-size: 10px; }
+.policy-submission-message dl { display: flex; flex-direction: column; }
+.policy-submission-message dl > div { display: grid; grid-template-columns: minmax(90px, .8fr) minmax(0, 1.4fr); gap: 12px; padding: 8px 12px; border-bottom: 1px solid #e5ece7; font-size: 11px; }
+.policy-submission-message dl > div:last-child { border-bottom: 0; }
+.policy-submission-message dt { color: #7b877f; }
+.policy-submission-message dd { overflow-wrap: anywhere; font-weight: 600; text-align: right; }
+
 .policy-progress-ring {
   --policy-progress: 0deg;
   position: relative;
@@ -388,4 +398,7 @@ body {
   .policy-summary-group dl > div { border-color: #303a34; }
   .policy-summary-group .is-defined dd { color: #edf3ef; }
   .policy-summary-header, .policy-summary-footer { border-color: #2b352f; }
+  .policy-plain-user-message { background: #26312b; color: #edf3ef; }
+  .policy-submission-message { border-color: #355243; background: #17241d; color: #edf3ef; }
+  .policy-submission-heading, .policy-submission-message dl > div { border-color: #2d4035; }
 }

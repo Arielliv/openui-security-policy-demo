@@ -47,6 +47,7 @@ export const policyPromptOptions = {
     "Ask for no more than three inputs per response; split longer sections into follow-up steps.",
     "Prefer radio, checkbox, select, and switch controls over free text when possible.",
     "Every form must have a clear submit button that sends its values with @ToAssistant.",
+    "Use a short static human-friendly message in @ToAssistant. Never concatenate form variables into that message; the complete form state is attached automatically.",
     "Start streaming the heading and first control before defining the rest of the form.",
   ],
 };

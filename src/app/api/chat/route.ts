@@ -1,4 +1,5 @@
 import { calculatePolicySnapshot, createEmptyPolicy, findLatestPolicySnapshot } from "@/lib/policy";
+import { compactConversation } from "@/lib/conversation";
 import { policyLibrarySpec, policyPromptOptions } from "@/lib/policy-openui";
 import { createPolicyTools } from "@/lib/tools/policy-tools";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -43,16 +44,6 @@ const OPENUI_PROMPT = generateSystemPrompt({
   library: policyLibrarySpec,
   promptOptions: policyPromptOptions,
 });
-
-function compactConversation(messages: UIMessage[]) {
-  return messages
-    .slice(-10)
-    .map((message) => ({
-      ...message,
-      parts: message.parts.filter((part) => part.type === "text"),
-    }))
-    .filter((message) => message.parts.length > 0);
-}
 
 export async function POST(req: Request) {
   if (!(process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY)) {
