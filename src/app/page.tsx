@@ -3,6 +3,7 @@ import "@openuidev/react-ui/styles/index.css";
 
 import { PolicyProgressPanel, PolicySummaryPanel } from "@/components/policy-workbench";
 import { PolicyUserMessage } from "@/components/policy-user-message";
+import { appOpenuiLibrary } from "@/lib/openui-library";
 import {
   AgentInterface,
   fetchLLM,
@@ -10,7 +11,6 @@ import {
   vercelAIAdapter,
   vercelAIMessageFormat,
 } from "@openuidev/react-ui";
-import { openuiLibrary } from "@openuidev/react-ui/genui-lib";
 
 const llm = fetchLLM({
   url: "/api/chat",
@@ -25,7 +25,7 @@ export default function Home() {
     <main className="app-shell">
       <AgentInterface
         llm={llm}
-        componentLibrary={openuiLibrary}
+        componentLibrary={appOpenuiLibrary}
         components={{ UserMessage: PolicyUserMessage }}
         agentName="Aegis Policy Assistant"
         theme={{ mode }}
