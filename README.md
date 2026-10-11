@@ -42,6 +42,42 @@ The important idea is that OpenUI does not replace the company application or gi
 
 This separation is deliberate: OpenUI owns the adaptive conversational surface, while application code owns business truth.
 
+### What happens after every answer
+
+```mermaid
+flowchart LR
+  subgraph OLD[Traditional AI chat]
+    direction TB
+    O1[User sends a message] --> O2[LLM generates text]
+    O2 --> O3[User interprets the answer]
+    O3 --> O4[User opens a separate static form]
+    O4 --> O5[Form calls APIs]
+    O5 -. Context and progress can drift .-> O1
+  end
+
+  subgraph OPENUI[This OpenUI workflow]
+    direction TB
+    N1[User sends an answer or submits an inline control] --> N2[API adds validated policy state and approved component catalog]
+    N2 --> N3[LLM identifies the next decision]
+    N3 --> D{What will help the user now?}
+    D -->|Missing structured values| C1[Form + Select / Radio / Checkbox]
+    D -->|Risk needs attention| C2[Callout + simulated risk chart]
+    D -->|Context should be scanned| C3[Tags + compact summary]
+    D -->|Everything is ready| C4[Review + explicit confirmation]
+    C1 --> R[OpenUI streams interactive React UI into the chat]
+    C2 --> R
+    C3 --> R
+    C4 --> R
+    R --> A[User action returns structured values]
+    A --> T[Policy tools validate and merge the update]
+    T --> S[Progress, warnings, and summary update from canonical state]
+    S -->|Next answer| N2
+    S -->|Explicitly confirmed and valid| F[Create mock policy]
+  end
+```
+
+The important difference is the feedback loop. A traditional chat mainly returns prose and leaves the user to translate it into another interface. Here, the LLM receives a constrained catalog of approved components plus the current validated policy state. It chooses the smallest useful interaction for the next decision, while deterministic application code—not the model—owns saved values, validation, progress, warnings, risk inputs, and final creation.
+
 ### The demo workflow
 
 The example policy models an agent that responds to compromised employee accounts. The assistant first captures identity, then asks where the agent runs (GCP Vertex AI, Azure AI Studio, AWS Bedrock, or OpenAI Enterprise), which account/project, model deployment, and region it uses. Next it selects from a mock connected MCP catalog—such as Microsoft Entra ID, GitHub Enterprise, Jira Cloud, PagerDuty, or an AWS data platform—and records an explicit action for every selected tool: allow, deny, flag, or log. Ownership, data handling, guardrails, and monitoring complete the review. This mirrors the decisions a real security team must make without connecting the demo to production systems.
