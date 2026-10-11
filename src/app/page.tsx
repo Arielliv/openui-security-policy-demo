@@ -1,7 +1,7 @@
 "use client";
 import "@openuidev/react-ui/styles/index.css";
 
-import { PolicySidebar } from "@/components/policy-sidebar";
+import { PolicyProgressPanel, PolicySummaryPanel } from "@/components/policy-workbench";
 import {
   AgentInterface,
   fetchLLM,
@@ -36,13 +36,16 @@ export default function Home() {
       >
         <AgentInterface.Sidebar>
           <AgentInterface.SidebarHeader
-            logo={<div className="aegis-mark" aria-hidden="true">A</div>}
-            agentName={<div className="aegis-brand"><strong>Aegis</strong><span>Identity policy studio</span></div>}
+            logo={<div className="aegis-mark small" aria-hidden="true">A</div>}
+            agentName={<div className="aegis-brand"><strong>Policy workspace</strong><span>Live completion status</span></div>}
           />
           <AgentInterface.SidebarContent>
-            <PolicySidebar />
+            <PolicyProgressPanel />
           </AgentInterface.SidebarContent>
         </AgentInterface.Sidebar>
+        <AgentInterface.Workspace>
+          <PolicySummaryPanel />
+        </AgentInterface.Workspace>
         <AgentInterface.Welcome
           glowAnimation
           image={<div className="welcome-mark" aria-hidden="true">A</div>}
