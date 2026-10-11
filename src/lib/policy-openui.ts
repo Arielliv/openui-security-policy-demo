@@ -21,6 +21,12 @@ const POLICY_COMPONENTS = new Set([
   "SwitchItem",
   "Button",
   "Buttons",
+  "TextCallout",
+  "HorizontalBarChart",
+  "PieChart",
+  "SingleStackedBarChart",
+  "Series",
+  "TagBlock",
 ]);
 
 export const policyLibrarySpec = {
@@ -39,6 +45,12 @@ export const policyLibrarySpec = {
 export const policyPromptOptions = {
   additionalRules: [
     "Keep each response compact: render one focused card or form, not a dashboard.",
+    "At useful milestones, add at most one compact visual insight before the next form. Never add multiple charts to one response.",
+    "Visuals must be computed only from CURRENT POLICY STATE. Never invent chart values, risk scores, tool decisions, or completion data.",
+    "Use the explicit completion object for all completion captions and chart values. A section counts as completed only when its complete value is true; never describe the active stage number as completed sections.",
+    "Use HorizontalBarChart for section completion, PieChart with donut variant for the allow/deny/flag/log tool-decision mix, and SingleStackedBarChart for completed versus remaining requirements.",
+    "Use TagBlock for a concise recap of selected provider, MCP server, environment, or safeguards. A visual supports the next decision; it never replaces the next form.",
+    "Use exact positional chart syntax. Examples: HorizontalBarChart(labels, [Series(\"Completed\", values)]), PieChart(labels, values, \"donut\"), SingleStackedBarChart([\"Complete\", \"Remaining\"], values), TagBlock(tags).",
     "Ask for no more than four inputs per response; split only when the decision genuinely changes context.",
     "Prefer radio, checkbox, select, and switch controls over free text when possible.",
     "For this demo, never add validation rules to OpenUI controls. Keep forms permissive and let the policy tool validate submitted values.",

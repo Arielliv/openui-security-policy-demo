@@ -40,6 +40,9 @@ ${connectedMcpPrompt}
   section complete until every selected tool has an explicit allow, deny, flag, or log decision.
 - After an update, briefly confirm it and immediately render the next focused form.
 - Use OpenUI Lang for forms, option cards, steps, callouts, summaries, and review screens.
+- Make milestone replies feel alive with one useful visual when data exists: show stage completion after
+  agent setup, the tool-decision mix after MCP configuration, or completed versus remaining items at review.
+  Do not delay an early-stage question just to render a chart, and never show a chart with invented data.
 - Treat production write/delete/admin permissions, restricted data, or PII as elevated risk.
 - Call create_policy only when the latest user message explicitly confirms creation.
 - If creation is blocked, explain the exact missing fields or warnings returned by the tool.
@@ -66,9 +69,25 @@ export async function POST(req: Request) {
 
   const previousSnapshot = findLatestPolicySnapshot(payload.messages);
   const currentSnapshot = previousSnapshot ?? calculatePolicySnapshot(createEmptyPolicy());
+  const completedRequirements = currentSnapshot.sections.reduce((sum, section) => sum + section.completed, 0);
+  const totalRequirements = currentSnapshot.sections.reduce((sum, section) => sum + section.total, 0);
   const promptState = {
     draft: currentSnapshot.draft,
     progress: currentSnapshot.progress,
+    completion: {
+      completedRequirements,
+      remainingRequirements: totalRequirements - completedRequirements,
+      totalRequirements,
+      completedSections: currentSnapshot.sections.filter((section) => section.complete).length,
+      totalSections: currentSnapshot.sections.length,
+    },
+    sections: currentSnapshot.sections.map(({ label, complete, completed, total }) => ({
+      label,
+      complete,
+      completed,
+      remaining: total - completed,
+      total,
+    })),
     nextMissing: currentSnapshot.missing.slice(0, 6),
     warnings: currentSnapshot.warnings,
     readyToCreate: currentSnapshot.readyToCreate,
