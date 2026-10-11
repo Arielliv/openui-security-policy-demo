@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculatePolicySnapshot,
   createEmptyPolicy,
+  findLatestPolicySnapshot,
   mergePolicyUpdate,
   type PolicyDraft,
 } from "./policy";
@@ -86,5 +87,20 @@ describe("policy progress", () => {
     expect(snapshot.progress).toBe(100);
     expect(snapshot.warnings).toEqual([]);
     expect(snapshot.readyToCreate).toBe(true);
+  });
+
+  it("recovers a validated snapshot from an OpenUI tool message", () => {
+    const expected = calculatePolicySnapshot(completePolicy(), "Policy draft updated");
+    expect(findLatestPolicySnapshot([
+      { role: "user", content: JSON.stringify(expected) },
+    ])).toBeNull();
+
+    const recovered = findLatestPolicySnapshot([
+      { role: "user", content: JSON.stringify(expected) },
+      { role: "tool", content: JSON.stringify(expected), toolCallId: "call-1" },
+    ]);
+
+    expect(recovered?.progress).toBe(100);
+    expect(recovered?.draft.identity.agentName).toBe("Sentinel Responder");
   });
 });

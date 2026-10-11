@@ -5,11 +5,6 @@ import { z } from "zod";
 export function createPolicyTools(initialDraft?: PolicyDraft) {
   let draft = initialDraft ?? createEmptyPolicy();
   return {
-    get_policy_status: tool({
-      description: "Read the authoritative policy draft, progress, missing fields, and warnings.",
-      inputSchema: z.object({}),
-      execute: () => calculatePolicySnapshot(draft, "Policy status reviewed"),
-    }),
     update_policy_draft: tool({
       description: "Apply only policy facts explicitly provided or confirmed by the user. Send only changed fields and never invent values.",
       inputSchema: policyUpdateSchema,

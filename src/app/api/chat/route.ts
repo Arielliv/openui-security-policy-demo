@@ -1,6 +1,5 @@
-import librarySpec from "@/generated/spec.json";
-import { findLatestPolicySnapshot } from "@/lib/policy";
-import { promptOptions } from "@/lib/prompt-options";
+import { calculatePolicySnapshot, createEmptyPolicy, findLatestPolicySnapshot } from "@/lib/policy";
+import { policyLibrarySpec, policyPromptOptions } from "@/lib/policy-openui";
 import { createPolicyTools } from "@/lib/tools/policy-tools";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateSystemPrompt } from "@openuidev/lang-core";
@@ -27,8 +26,10 @@ Rules:
 - This is a synthetic demo. Never request passwords, API keys, tokens, or real personal data.
 - Policy tools are authoritative. Never claim a field was saved unless a tool returned it.
 - Whenever the user provides or corrects policy facts, call update_policy_draft before replying.
+- The current policy state is included below. Do not call a tool merely to read status.
 - Never infer owners, contacts, security decisions, limits, or dates the user did not state.
-- Ask focused questions about one policy section at a time. Prefer selectable OpenUI controls.
+- Ask focused questions about one policy section at a time, with at most three inputs per response.
+  Split larger sections into short follow-up steps. Prefer selectable OpenUI controls.
 - After every update, state what changed, show progress, summarize the current section, and ask for
   the next most important missing information.
 - Use OpenUI Lang for forms, option cards, steps, callouts, summaries, and review screens.
@@ -37,6 +38,21 @@ Rules:
 - If creation is blocked, explain the exact missing fields or warnings returned by the tool.
 - Keep responses concise. Do not dump every field after each turn.
 `;
+
+const OPENUI_PROMPT = generateSystemPrompt({
+  library: policyLibrarySpec,
+  promptOptions: policyPromptOptions,
+});
+
+function compactConversation(messages: UIMessage[]) {
+  return messages
+    .slice(-10)
+    .map((message) => ({
+      ...message,
+      parts: message.parts.filter((part) => part.type === "text"),
+    }))
+    .filter((message) => message.parts.length > 0);
+}
 
 export async function POST(req: Request) {
   if (!(process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY)) {
@@ -52,22 +68,23 @@ export async function POST(req: Request) {
   }
 
   const previousSnapshot = findLatestPolicySnapshot(payload.messages);
+  const currentSnapshot = previousSnapshot ?? calculatePolicySnapshot(createEmptyPolicy());
   const tools = createPolicyTools(previousSnapshot?.draft);
   const result = streamText({
-    model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.8-flash"),
-    system: `${generateSystemPrompt({ library: librarySpec, promptOptions })}\n${POLICY_INSTRUCTIONS}`,
-    messages: await convertToModelMessages(payload.messages),
+    model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.1-flash-lite"),
+    system: `${OPENUI_PROMPT}\n${POLICY_INSTRUCTIONS}\nCURRENT POLICY STATE:\n${JSON.stringify(currentSnapshot)}`,
+    messages: await convertToModelMessages(compactConversation(payload.messages)),
     tools,
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingLevel: "low",
+          thinkingBudget: 0,
           includeThoughts: false,
         },
       },
     },
-    maxOutputTokens: 2048,
-    stopWhen: stepCountIs(6),
+    maxOutputTokens: 1200,
+    stopWhen: stepCountIs(3),
     abortSignal: req.signal,
   });
 

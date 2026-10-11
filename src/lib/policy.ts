@@ -182,6 +182,13 @@ export function findLatestPolicySnapshot(value: unknown): PolicySnapshot | null 
       const parsed = policyDraftSchema.safeParse(record.draft);
       if (parsed.success) latest = calculatePolicySnapshot(parsed.data, typeof record.lastAction === "string" ? record.lastAction : "Draft updated");
     }
+    if (record.role === "tool" && typeof record.content === "string") {
+      try {
+        visit(JSON.parse(record.content));
+      } catch {
+        // Non-JSON tool output cannot contain a policy snapshot.
+      }
+    }
     Object.values(record).forEach(visit);
   };
   visit(value);

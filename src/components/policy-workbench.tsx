@@ -1,6 +1,7 @@
 "use client";
 
 import { useThread } from "@openuidev/react-headless";
+import { useEffect, useState } from "react";
 import {
   calculatePolicySnapshot,
   createEmptyPolicy,
@@ -10,10 +11,31 @@ import {
 } from "@/lib/policy";
 
 const initialSnapshot = calculatePolicySnapshot(createEmptyPolicy());
+const activityStages = [
+  "Reading your response",
+  "Checking policy requirements",
+  "Preparing the next step",
+];
 
 function usePolicySnapshot() {
   const messages = useThread((state) => state.messages);
   return findLatestPolicySnapshot(messages) ?? initialSnapshot;
+}
+
+function useAgentActivity() {
+  const isRunning = useThread((state) => state.isRunning);
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const interval = window.setInterval(() => {
+      setStage((current) => (current + 1) % activityStages.length);
+    }, 1200);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
+
+  return { isRunning, label: activityStages[stage] };
 }
 
 function downloadPolicy(draft: PolicyDraft) {
@@ -102,12 +124,13 @@ function SummaryContent({ snapshot, compact = false }: { snapshot: PolicySnapsho
 
 export function PolicyProgressPanel() {
   const snapshot = usePolicySnapshot();
+  const activity = useAgentActivity();
   const nextMissing = snapshot.missing.slice(0, 4);
   const activeSection = snapshot.sections.find((section) => !section.complete);
 
   return (
     <div className="policy-progress-panel" aria-live="polite">
-      <section className="policy-progress-hero">
+      <section className={`policy-progress-hero ${activity.isRunning ? "is-processing" : ""}`}>
         <div
           className="policy-progress-ring"
           style={{ "--policy-progress": `${snapshot.progress * 3.6}deg` } as React.CSSProperties}
@@ -122,7 +145,11 @@ export function PolicyProgressPanel() {
         <div className="policy-stage-copy">
           <span className="policy-kicker">Current stage</span>
           <h2>{snapshot.readyToCreate ? "Ready for review" : activeSection?.label ?? "Final review"}</h2>
-          <p>{snapshot.lastAction}</p>
+          <p className={activity.isRunning ? "policy-activity-label" : ""}>
+            {activity.isRunning && <span className="policy-activity-dot" aria-hidden="true" />}
+            {activity.isRunning ? activity.label : snapshot.lastAction}
+          </p>
+          {activity.isRunning && <div className="policy-activity-track" aria-hidden="true"><i /></div>}
         </div>
       </section>
 
@@ -163,6 +190,7 @@ export function PolicyProgressPanel() {
 
 export function PolicySummaryPanel() {
   const snapshot = usePolicySnapshot();
+  const activity = useAgentActivity();
   const draftName = snapshot.draft.identity.agentName ?? "Untitled agent";
 
   return (
@@ -172,8 +200,8 @@ export function PolicySummaryPanel() {
           <span className="policy-kicker">Policy draft</span>
           <h2>{draftName}</h2>
         </div>
-        <span className={snapshot.readyToCreate ? "policy-status ready" : "policy-status"}>
-          <i /> {snapshot.readyToCreate ? "Ready" : "In progress"}
+        <span className={activity.isRunning ? "policy-status working" : snapshot.readyToCreate ? "policy-status ready" : "policy-status"}>
+          <i /> {activity.isRunning ? "AI working" : snapshot.readyToCreate ? "Ready" : "In progress"}
         </span>
       </header>
       <div className="policy-summary-scroll">
