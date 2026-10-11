@@ -20,8 +20,7 @@ const google = createGoogleGenerativeAI({
 });
 
 const POLICY_INSTRUCTIONS = `
-You are Aegis, a security identity policy onboarding assistant. Help the user create a realistic
-security identity policy for an AI agent through a calm, efficient conversation.
+You are Aegis, a fast security-policy onboarding assistant. Keep every turn short and actionable.
 
 Rules:
 - This is a synthetic demo. Never request passwords, API keys, tokens, or real personal data.
@@ -29,24 +28,22 @@ Rules:
 - Whenever the user provides or corrects policy facts, call update_policy_draft before replying.
 - The current policy state is included below. Do not call a tool merely to read status.
 - Never infer owners, contacts, security decisions, limits, or dates the user did not state.
-- Ask focused questions about one policy section at a time, with at most three inputs per response.
+- Ask focused questions about one policy section at a time, with at most four inputs per response.
   Split larger sections into short follow-up steps. Prefer selectable OpenUI controls.
-- Guide the user through this order: agent identity, AI runtime provider/account/deployment/region,
-  connected MCP server, selected tools and a decision for each tool, then ownership, data handling,
-  guardrails, and monitoring.
+- Guide the user through four short stages: agent setup, AI runtime + MCP access, data + safeguards,
+  then review. Optional details must never block progress.
 - The connected MCP catalog is fixed for this demo. Never invent a server or tool:
 ${connectedMcpPrompt}
 - Store MCP answers in mcp.serverId, mcp.selectedTools, mcp.toolPolicies (one object per selected
   tool with serverId, tool, and decision), mcp.defaultDecision, and mcp.humanApproval.
 - When a user selects several tools, ask for or render a decision for each one. Do not mark the MCP
   section complete until every selected tool has an explicit allow, deny, flag, or log decision.
-- After every update, state what changed, show progress, summarize the current section, and ask for
-  the next most important missing information.
+- After an update, briefly confirm it and immediately render the next focused form.
 - Use OpenUI Lang for forms, option cards, steps, callouts, summaries, and review screens.
 - Treat production write/delete/admin permissions, restricted data, or PII as elevated risk.
 - Call create_policy only when the latest user message explicitly confirms creation.
 - If creation is blocked, explain the exact missing fields or warnings returned by the tool.
-- Keep responses concise. Do not dump every field after each turn.
+- Keep prose to two short sentences. Render one compact form with at most four fields.
 `;
 
 const OPENUI_PROMPT = generateSystemPrompt({
@@ -69,22 +66,22 @@ export async function POST(req: Request) {
 
   const previousSnapshot = findLatestPolicySnapshot(payload.messages);
   const currentSnapshot = previousSnapshot ?? calculatePolicySnapshot(createEmptyPolicy());
+  const promptState = {
+    draft: currentSnapshot.draft,
+    progress: currentSnapshot.progress,
+    nextMissing: currentSnapshot.missing.slice(0, 6),
+    warnings: currentSnapshot.warnings,
+    readyToCreate: currentSnapshot.readyToCreate,
+  };
   const tools = createPolicyTools(previousSnapshot?.draft);
   const result = streamText({
-    model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.1-flash-lite"),
-    system: `${OPENUI_PROMPT}\n${POLICY_INSTRUCTIONS}\nCURRENT POLICY STATE:\n${JSON.stringify(currentSnapshot)}`,
+    model: google(process.env.GEMINI_MODEL ?? process.env.OPENAI_MODEL ?? "gemini-3.5-flash-lite"),
+    system: `${OPENUI_PROMPT}\n${POLICY_INSTRUCTIONS}\nCURRENT POLICY STATE:\n${JSON.stringify(promptState)}`,
     messages: await convertToModelMessages(compactConversation(payload.messages)),
     tools,
-    providerOptions: {
-      google: {
-        thinkingConfig: {
-          thinkingBudget: 0,
-          includeThoughts: false,
-        },
-      },
-    },
-    maxOutputTokens: 1200,
-    stopWhen: stepCountIs(3),
+    maxOutputTokens: 700,
+    maxRetries: 1,
+    stopWhen: stepCountIs(2),
     abortSignal: req.signal,
   });
 

@@ -9,34 +9,34 @@ export const connectedMcpCatalog = [
 ] as const;
 
 const toolDecisionSchema = z.object({
-  serverId: z.string().trim().min(2),
-  tool: z.string().trim().min(2),
+  serverId: z.string().trim().min(1),
+  tool: z.string().trim().min(1),
   decision: z.enum(["allow", "deny", "flag", "log"]),
 });
 
 export const policyDraftSchema = z.object({
   identity: z.object({
-    agentName: z.string().trim().min(2).optional(),
-    purpose: z.string().trim().min(10).optional(),
+    agentName: z.string().trim().min(1).optional(),
+    purpose: z.string().trim().min(1).optional(),
     agentType: z.enum(["assistant", "automation", "autonomous"]).optional(),
     environment: z.enum(["development", "staging", "production"]).optional(),
     riskLevel: z.enum(["low", "medium", "high", "critical"]).optional(),
   }).default({}),
   ownership: z.object({
-    businessOwner: z.string().trim().min(2).optional(),
-    technicalOwner: z.string().trim().min(2).optional(),
-    securityReviewer: z.string().trim().min(2).optional(),
-    escalationContact: z.string().trim().min(2).optional(),
+    businessOwner: z.string().trim().min(1).optional(),
+    technicalOwner: z.string().trim().min(1).optional(),
+    securityReviewer: z.string().trim().min(1).optional(),
+    escalationContact: z.string().trim().min(1).optional(),
   }).default({}),
   runtime: z.object({
     provider: z.enum(["gcp_vertex_ai", "azure_ai_studio", "aws_bedrock", "openai_enterprise"]).optional(),
-    accountOrProject: z.string().trim().min(2).optional(),
-    modelDeployment: z.string().trim().min(2).optional(),
-    region: z.string().trim().min(2).optional(),
+    accountOrProject: z.string().trim().min(1).optional(),
+    modelDeployment: z.string().trim().min(1).optional(),
+    region: z.string().trim().min(1).optional(),
   }).default({}),
   mcp: z.object({
-    serverId: z.string().trim().min(2).optional(),
-    selectedTools: z.array(z.string().trim().min(2)).max(20).optional(),
+    serverId: z.string().trim().min(1).optional(),
+    selectedTools: z.array(z.string().trim().min(1)).max(20).optional(),
     toolPolicies: z.array(toolDecisionSchema).max(40).optional(),
     defaultDecision: z.enum(["allow", "deny", "flag", "log"]).optional(),
     humanApproval: z.enum(["never", "flagged_only", "always"]).optional(),
@@ -44,21 +44,21 @@ export const policyDraftSchema = z.object({
   dataHandling: z.object({
     classifications: z.array(z.enum(["public", "internal", "confidential", "restricted"])).max(4).optional(),
     processesPii: z.boolean().optional(),
-    residency: z.string().trim().min(2).optional(),
+    residency: z.string().trim().min(1).optional(),
     retentionDays: z.number().int().nonnegative().max(3650).optional(),
     redactSensitiveLogs: z.boolean().optional(),
   }).default({}),
   guardrails: z.object({
     rateLimitPerHour: z.number().int().positive().max(100000).optional(),
     transactionLimit: z.number().nonnegative().optional(),
-    emergencyShutdown: z.string().trim().min(5).optional(),
+    emergencyShutdown: z.string().trim().min(1).optional(),
     productionApprovalRequired: z.boolean().optional(),
   }).default({}),
   monitoring: z.object({
     auditLogging: z.boolean().optional(),
-    alertChannel: z.string().trim().min(2).optional(),
+    alertChannel: z.string().trim().min(1).optional(),
     reviewFrequencyDays: z.number().int().positive().max(365).optional(),
-    expiresAt: z.string().date().optional(),
+    expiresAt: z.string().trim().min(4).optional(),
   }).default({}),
   confirmed: z.boolean().default(false),
   createdPolicyId: z.string().optional(),
@@ -136,51 +136,30 @@ export function calculatePolicySnapshot(draftInput: PolicyDraft, lastAction = "D
     (tool) => !toolPolicies.some((policy) => policy.tool === tool && policy.serverId === draft.mcp.serverId),
   );
   const results = [
-    section("identity", "Identity", [
+    section("identity", "Agent setup", [
       { label: "Agent name", met: hasText(draft.identity.agentName) },
       { label: "Business purpose", met: hasText(draft.identity.purpose) },
-      { label: "Agent type", met: isSet(draft.identity.agentType) },
       { label: "Environment", met: isSet(draft.identity.environment) },
-      { label: "Risk level", met: isSet(draft.identity.riskLevel) },
-    ]),
-    section("ownership", "Ownership", [
       { label: "Business owner", met: hasText(draft.ownership.businessOwner) },
-      { label: "Technical owner", met: hasText(draft.ownership.technicalOwner) },
-      { label: "Security reviewer", met: hasText(draft.ownership.securityReviewer) },
-      { label: "Escalation contact", met: hasText(draft.ownership.escalationContact) },
     ]),
-    section("runtime", "AI runtime", [
+    section("runtime", "Runtime & MCP", [
       { label: "AI provider", met: isSet(draft.runtime.provider) },
-      { label: "Account or project", met: hasText(draft.runtime.accountOrProject) },
       { label: "Model deployment", met: hasText(draft.runtime.modelDeployment) },
-      { label: "Region", met: hasText(draft.runtime.region) },
-    ]),
-    section("mcp", "MCP access policy", [
       { label: "Connected MCP server", met: hasText(draft.mcp.serverId) },
       { label: "Tools selected", met: hasItems(selectedTools) },
       { label: "Tool decisions", met: toolPolicies.length > 0 && !hasUnclassifiedTool },
-      { label: "Default tool action", met: isSet(draft.mcp.defaultDecision) },
       { label: "Human approval rule", met: isSet(draft.mcp.humanApproval) },
     ]),
-    section("data", "Data handling", [
+    section("safeguards", "Data & safeguards", [
       { label: "Data classifications", met: hasItems(draft.dataHandling.classifications) },
       { label: "PII decision", met: isSet(draft.dataHandling.processesPii) },
-      { label: "Data residency", met: hasText(draft.dataHandling.residency) },
-      { label: "Retention period", met: isSet(draft.dataHandling.retentionDays) },
-      { label: "Log redaction decision", met: isSet(draft.dataHandling.redactSensitiveLogs) },
-    ]),
-    section("guardrails", "Guardrails", [
       { label: "Rate limit", met: isSet(draft.guardrails.rateLimitPerHour) },
       { label: "Emergency shutdown procedure", met: hasText(draft.guardrails.emergencyShutdown) },
-      ...(production
-        ? [{ label: "Production approval decision", met: isSet(draft.guardrails.productionApprovalRequired) }]
-        : []),
     ]),
-    section("monitoring", "Monitoring & lifecycle", [
+    section("monitoring", "Review & finish", [
       { label: "Audit logging decision", met: isSet(draft.monitoring.auditLogging) },
       { label: "Alert channel", met: hasText(draft.monitoring.alertChannel) },
       { label: "Review frequency", met: isSet(draft.monitoring.reviewFrequencyDays) },
-      { label: "Policy expiration", met: hasText(draft.monitoring.expiresAt) },
     ]),
   ];
   const completed = results.reduce((sum, result) => sum + result.status.completed, 0);

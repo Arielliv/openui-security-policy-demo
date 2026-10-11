@@ -51,7 +51,7 @@ export function appendSubmittedFormValues(text: string) {
 
 export function compactConversation(messages: UIMessage[]) {
   return messages
-    .slice(-10)
+    .slice(-6)
     .map((message) => ({
       ...message,
       parts: message.role === "user"

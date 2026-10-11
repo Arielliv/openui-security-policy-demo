@@ -97,7 +97,7 @@ Create a free API key in [Google AI Studio](https://aistudio.google.com/apikey),
 
 ```env
 GEMINI_API_KEY=your-key
-GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 Model availability and free-tier limits can change. Choose another Gemini model in `.env.local` if necessary. Free-tier prompts may be used by Google to improve its products, so only use synthetic demo data.

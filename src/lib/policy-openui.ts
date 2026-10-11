@@ -6,7 +6,6 @@ const POLICY_COMPONENTS = new Set([
   "Card",
   "CardHeader",
   "TextContent",
-  "TextCallout",
   "Form",
   "FormControl",
   "Label",
@@ -14,7 +13,6 @@ const POLICY_COMPONENTS = new Set([
   "TextArea",
   "Select",
   "SelectItem",
-  "DatePicker",
   "CheckBoxGroup",
   "CheckBoxItem",
   "RadioGroup",
@@ -23,10 +21,6 @@ const POLICY_COMPONENTS = new Set([
   "SwitchItem",
   "Button",
   "Buttons",
-  "Steps",
-  "StepsItem",
-  "TagBlock",
-  "Tag",
 ]);
 
 export const policyLibrarySpec = {
@@ -45,11 +39,15 @@ export const policyLibrarySpec = {
 export const policyPromptOptions = {
   additionalRules: [
     "Keep each response compact: render one focused card or form, not a dashboard.",
-    "Ask for no more than three inputs per response; split longer sections into follow-up steps.",
+    "Ask for no more than four inputs per response; split only when the decision genuinely changes context.",
     "Prefer radio, checkbox, select, and switch controls over free text when possible.",
+    "For this demo, never add validation rules to OpenUI controls. Keep forms permissive and let the policy tool validate submitted values.",
     "Every form must have a clear submit button that sends its values with @ToAssistant.",
     "Use a short static human-friendly message in @ToAssistant. Never concatenate form variables into that message; the complete form state is attached automatically.",
-    "Start streaming the heading and first control before defining the rest of the form.",
+    "Start streaming the heading and first control immediately. Avoid decorative components and long explanatory text.",
+    "Use Stack([children]) and Card([children]) with their default layout arguments. Do not emit positional align or justify arguments; in particular, never use stretch as a justify value.",
+    "OpenUI Lang does not support named arguments. Never write placeholder =, rows =, rules =, value =, or similar assignments inside a component call.",
+    "Use these exact positional forms for common controls: Input(name, placeholder), TextArea(name, placeholder, rows), Select(name, items, placeholder), RadioGroup(name, items), and FormControl(label, input, hint).",
     "For AI provider selection, use only GCP Vertex AI, Azure AI Studio, AWS Bedrock, or OpenAI Enterprise.",
     "For MCP selection, use only the connected demo servers and tools listed in the assistant instructions.",
     "When asking about MCP tools, capture a decision for every selected tool: allow, deny, flag, or log.",

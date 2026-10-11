@@ -64,7 +64,7 @@ describe("policy progress", () => {
   it("starts empty with every section visible", () => {
     const snapshot = calculatePolicySnapshot(createEmptyPolicy());
     expect(snapshot.progress).toBe(0);
-    expect(snapshot.sections).toHaveLength(7);
+    expect(snapshot.sections).toHaveLength(4);
     expect(snapshot.readyToCreate).toBe(false);
   });
 
