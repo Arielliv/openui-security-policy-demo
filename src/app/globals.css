@@ -153,6 +153,40 @@ body {
   .policy-warning-card { border-color: #5e4a27; background: #2a2317; color: #e6c682; }
 }
 
+/* Light-blue Aegis brand layer for the AI runtime + MCP demo. */
+:root {
+  --aegis-green: #287bb5;
+  --aegis-mint: #e3f3fb;
+  --aegis-border: #d8e7f0;
+  --aegis-panel: #f7fbfe;
+}
+.aegis-mark, .welcome-mark { background: linear-gradient(145deg, #225f92, #53a8d8); box-shadow: 0 8px 22px rgba(40, 123, 181, .22); }
+.policy-live-dot { background: #4aa9d8; box-shadow: 0 0 0 4px rgba(74, 169, 216, .14); }
+.policy-progress-track span, .policy-stage-bar i { background: linear-gradient(90deg, #287bb5, #55afd9); }
+.policy-eyebrow, .policy-kicker, .policy-activity-label { color: #287bb5 !important; }
+.policy-progress-hero { border-color: #cfe5f1; background: linear-gradient(145deg, #f5fbfe, #eaf6fc); }
+.policy-progress-hero.is-processing { border-color: #8dc7e5; box-shadow: 0 10px 34px rgba(40, 123, 181, .12); }
+.policy-progress-ring { background: conic-gradient(#287bb5 var(--policy-progress), #dcecf4 0); }
+.policy-progress-ring::after { background: #f7fbfe; }
+.policy-activity-dot { background: #3c9fd0; box-shadow: 0 0 0 0 rgba(60, 159, 208, .38); }
+.policy-activity-track i { background: linear-gradient(90deg, transparent, #3c9fd0, transparent); }
+.policy-stage-row.active { border-color: #b8dced; background: #eef8fd; }
+.policy-stage-row.complete .policy-stage-number { border-color: #a8d3e8; background: #dff2fb; color: #287bb5; }
+.policy-status.ready, .policy-status.working { background: #e4f4fb; color: #216b9e; }
+.policy-status.ready i, .policy-status.working i { background: #3c9fd0; }
+.policy-export-button:hover { border-color: #83bddb; background: #f0f9fd; }
+
+@media (prefers-color-scheme: dark) {
+  :root { --aegis-green: #67b8e2; --aegis-mint: #19394c; --aegis-border: #28495c; --aegis-panel: #111e27; }
+  .policy-progress-hero { border-color: #295269; background: linear-gradient(145deg, #172b37, #14232d); }
+  .policy-progress-ring { background: conic-gradient(#67b8e2 var(--policy-progress), #2a424f 0); }
+  .policy-progress-ring::after { background: #172b37; }
+  .policy-stage-row.active { border-color: #2d607b; background: #193342; }
+  .policy-stage-row.complete .policy-stage-number { border-color: #2d607b; background: #1e465c; color: #8ed0ee; }
+  .policy-status.ready, .policy-status.working { background: #193b4d; color: #9bd8f2; }
+  .policy-summary-rail { border-color: #28414f; }
+}
+
 /* Conversation-to-workbench layout --------------------------------------- */
 
 .app-shell .openui-agent-container:not(.openui-agent-container--mobile) > .openui-agent-thread-container {
@@ -401,4 +435,34 @@ body {
   .policy-plain-user-message { background: #26312b; color: #edf3ef; }
   .policy-submission-message { border-color: #355243; background: #17241d; color: #edf3ef; }
   .policy-submission-heading, .policy-submission-message dl > div { border-color: #2d4035; }
+}
+
+/* Final brand overrides keep the workbench blue in both system themes. */
+:root { --aegis-green: #287bb5; --aegis-mint: #e3f3fb; --aegis-border: #d8e7f0; --aegis-panel: #f7fbfe; }
+.aegis-mark, .welcome-mark { background: linear-gradient(145deg, #225f92, #53a8d8); box-shadow: 0 8px 22px rgba(40, 123, 181, .22); }
+.policy-live-dot { background: #4aa9d8; box-shadow: 0 0 0 4px rgba(74, 169, 216, .14); }
+.policy-eyebrow, .policy-kicker, .policy-activity-label { color: #287bb5 !important; }
+.policy-progress-hero { border-color: #cfe5f1; background: linear-gradient(145deg, #f5fbfe, #eaf6fc); }
+.policy-progress-hero.is-processing { border-color: #8dc7e5; box-shadow: 0 10px 34px rgba(40, 123, 181, .12); }
+.policy-progress-ring { background: conic-gradient(#287bb5 var(--policy-progress), #dcecf4 0); }
+.policy-progress-ring::after { background: #f7fbfe; }
+.policy-progress-track span, .policy-stage-bar i { background: linear-gradient(90deg, #287bb5, #55afd9); }
+.policy-activity-dot { background: #3c9fd0; box-shadow: 0 0 0 0 rgba(60, 159, 208, .38); }
+.policy-activity-track i { background: linear-gradient(90deg, transparent, #3c9fd0, transparent); }
+.policy-stage-row.active { border-color: #b8dced; background: #eef8fd; }
+.policy-stage-row.complete .policy-stage-number { border-color: #a8d3e8; background: #dff2fb; color: #287bb5; }
+.policy-status.ready, .policy-status.working { background: #e4f4fb; color: #216b9e; }
+.policy-status.ready i, .policy-status.working i { background: #3c9fd0; }
+.policy-export-button:hover { border-color: #83bddb; background: #f0f9fd; }
+
+@media (prefers-color-scheme: dark) {
+  :root { --aegis-green: #67b8e2; --aegis-mint: #19394c; --aegis-border: #28495c; --aegis-panel: #111e27; }
+  .app-shell .openui-agent-container:not(.openui-agent-container--mobile) > .openui-agent-sidebar-container { background: #111f28; }
+  .policy-summary-rail { background: #101a21; }
+  .policy-progress-hero { border-color: #295269; background: linear-gradient(145deg, #172b37, #14232d); }
+  .policy-progress-ring { background: conic-gradient(#67b8e2 var(--policy-progress), #2a424f 0); }
+  .policy-progress-ring::after { background: #172b37; }
+  .policy-stage-row.active { border-color: #2d607b; background: #193342; }
+  .policy-stage-row.complete .policy-stage-number { border-color: #2d607b; background: #1e465c; color: #8ed0ee; }
+  .policy-status.ready, .policy-status.working { background: #193b4d; color: #9bd8f2; }
 }

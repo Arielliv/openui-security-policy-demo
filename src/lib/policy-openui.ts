@@ -1,4 +1,5 @@
 import librarySpec from "@/generated/spec.json";
+import { connectedMcpCatalog } from "@/lib/policy";
 
 const POLICY_COMPONENTS = new Set([
   "Stack",
@@ -49,5 +50,13 @@ export const policyPromptOptions = {
     "Every form must have a clear submit button that sends its values with @ToAssistant.",
     "Use a short static human-friendly message in @ToAssistant. Never concatenate form variables into that message; the complete form state is attached automatically.",
     "Start streaming the heading and first control before defining the rest of the form.",
+    "For AI provider selection, use only GCP Vertex AI, Azure AI Studio, AWS Bedrock, or OpenAI Enterprise.",
+    "For MCP selection, use only the connected demo servers and tools listed in the assistant instructions.",
+    "When asking about MCP tools, capture a decision for every selected tool: allow, deny, flag, or log.",
+    "Use a review card after each MCP tool decision so the user can see the exact server, tool, and action recorded.",
   ],
 };
+
+export const connectedMcpPrompt = connectedMcpCatalog
+  .map((server) => `- ${server.id} (${server.label}): ${server.tools.join(", ")}`)
+  .join("\n");

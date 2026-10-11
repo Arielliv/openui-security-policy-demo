@@ -1,6 +1,6 @@
 import { calculatePolicySnapshot, createEmptyPolicy, findLatestPolicySnapshot } from "@/lib/policy";
 import { compactConversation } from "@/lib/conversation";
-import { policyLibrarySpec, policyPromptOptions } from "@/lib/policy-openui";
+import { connectedMcpPrompt, policyLibrarySpec, policyPromptOptions } from "@/lib/policy-openui";
 import { createPolicyTools } from "@/lib/tools/policy-tools";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateSystemPrompt } from "@openuidev/lang-core";
@@ -31,6 +31,15 @@ Rules:
 - Never infer owners, contacts, security decisions, limits, or dates the user did not state.
 - Ask focused questions about one policy section at a time, with at most three inputs per response.
   Split larger sections into short follow-up steps. Prefer selectable OpenUI controls.
+- Guide the user through this order: agent identity, AI runtime provider/account/deployment/region,
+  connected MCP server, selected tools and a decision for each tool, then ownership, data handling,
+  guardrails, and monitoring.
+- The connected MCP catalog is fixed for this demo. Never invent a server or tool:
+${connectedMcpPrompt}
+- Store MCP answers in mcp.serverId, mcp.selectedTools, mcp.toolPolicies (one object per selected
+  tool with serverId, tool, and decision), mcp.defaultDecision, and mcp.humanApproval.
+- When a user selects several tools, ask for or render a decision for each one. Do not mark the MCP
+  section complete until every selected tool has an explicit allow, deny, flag, or log decision.
 - After every update, state what changed, show progress, summarize the current section, and ask for
   the next most important missing information.
 - Use OpenUI Lang for forms, option cards, steps, callouts, summaries, and review screens.

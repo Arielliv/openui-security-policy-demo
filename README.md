@@ -12,6 +12,7 @@ This project is intentionally a synthetic, single-user demo. Do not enter creden
 - Deterministic completion scoring and conditional security warnings
 - Explicit confirmation before a mock policy can be created
 - Export of the current policy as JSON
+- A realistic AI runtime and MCP access workflow: choose the provider, deployment context, connected MCP server, and an explicit allow/deny/flag/log decision for every tool
 
 ## Why OpenUI changes the experience
 
@@ -40,6 +41,10 @@ The important idea is that OpenUI does not replace the company application or gi
 6. The center progress view and right-hand summary are ordinary React UI derived from that validated state. They do not depend on the model being correct about progress.
 
 This separation is deliberate: OpenUI owns the adaptive conversational surface, while application code owns business truth.
+
+### The demo workflow
+
+The example policy models an agent that responds to compromised employee accounts. The assistant first captures identity, then asks where the agent runs (GCP Vertex AI, Azure AI Studio, AWS Bedrock, or OpenAI Enterprise), which account/project, model deployment, and region it uses. Next it selects from a mock connected MCP catalog—such as Microsoft Entra ID, GitHub Enterprise, Jira Cloud, PagerDuty, or an AWS data platform—and records an explicit action for every selected tool: allow, deny, flag, or log. Ownership, data handling, guardrails, and monitoring complete the review. This mirrors the decisions a real security team must make without connecting the demo to production systems.
 
 ### Using the same approach with an existing company design system
 

@@ -6,6 +6,7 @@ import {
   calculatePolicySnapshot,
   createEmptyPolicy,
   findLatestPolicySnapshot,
+  connectedMcpCatalog,
   type PolicyDraft,
   type PolicySnapshot,
 } from "@/lib/policy";
@@ -76,13 +77,33 @@ function SummaryContent({ snapshot, compact = false }: { snapshot: PolicySnapsho
       ],
     },
     {
-      title: "Access & data",
+      title: "AI runtime",
       rows: [
-        ["Authentication", titleCase(draft.authentication.mechanism)],
-        ["Systems", draft.permissions.systems?.join(", ")],
-        ["Actions", draft.permissions.actions?.map(titleCase).join(", ")],
-        ["Approval", titleCase(draft.permissions.humanApproval)],
+        ["Provider", titleCase(draft.runtime.provider)],
+        ["Account / project", draft.runtime.accountOrProject],
+        ["Deployment", draft.runtime.modelDeployment],
+        ["Region", draft.runtime.region],
+      ],
+    },
+    {
+      title: "MCP access",
+      rows: [
+        ["Connected server", connectedMcpCatalog.find((server) => server.id === draft.mcp.serverId)?.label ?? draft.mcp.serverId],
+        ["Selected tools", draft.mcp.selectedTools?.join(", ")],
+        ["Tool decisions", draft.mcp.toolPolicies?.map((item) => `${item.tool}: ${titleCase(item.decision)}`).join(", ")],
+        ["Default action", titleCase(draft.mcp.defaultDecision)],
+        ["Human approval", titleCase(draft.mcp.humanApproval)],
         ["Data", draft.dataHandling.classifications?.map(titleCase).join(", ")],
+      ],
+    },
+    {
+      title: "Guardrails & data",
+      rows: [
+        ["PII", draft.dataHandling.processesPii === undefined ? undefined : draft.dataHandling.processesPii ? "Processed" : "Not processed"],
+        ["Residency", draft.dataHandling.residency],
+        ["Retention", draft.dataHandling.retentionDays === undefined ? undefined : `${draft.dataHandling.retentionDays} days`],
+        ["Rate limit", draft.guardrails.rateLimitPerHour === undefined ? undefined : `${draft.guardrails.rateLimitPerHour}/hour`],
+        ["Shutdown", draft.guardrails.emergencyShutdown],
       ],
     },
     {

@@ -22,18 +22,21 @@ function completePolicy(): PolicyDraft {
       securityReviewer: "Security Architecture",
       escalationContact: "SOC on-call",
     },
-    authentication: {
-      mechanism: "workload_identity",
-      identityProvider: "Example Workforce IAM",
-      secretStore: "Example Secret Vault",
-      tokenLifetimeMinutes: 15,
-      rotationDays: 30,
+    runtime: {
+      provider: "gcp_vertex_ai",
+      accountOrProject: "acme-security-prod",
+      modelDeployment: "sentinel-responder-v3",
+      region: "europe-west4",
     },
-    permissions: {
-      systems: ["Example Identity Provider"],
-      actions: ["read", "write"],
-      prohibitedActions: ["Delete users", "Grant administrator roles"],
-      humanApproval: "high_risk_only",
+    mcp: {
+      serverId: "entra-id",
+      selectedTools: ["lookup_user", "revoke_sessions"],
+      toolPolicies: [
+        { serverId: "entra-id", tool: "lookup_user", decision: "allow" },
+        { serverId: "entra-id", tool: "revoke_sessions", decision: "flag" },
+      ],
+      defaultDecision: "deny",
+      humanApproval: "flagged_only",
     },
     dataHandling: {
       classifications: ["internal", "confidential"],
@@ -74,11 +77,12 @@ describe("policy progress", () => {
     expect(updated.identity.environment).toBe("production");
   });
 
-  it("blocks unsafe production write access", () => {
+  it("blocks unsafe production MCP access", () => {
     const draft = completePolicy();
-    draft.permissions.humanApproval = "never";
+    draft.mcp.defaultDecision = "allow";
+    draft.mcp.humanApproval = "never";
     const snapshot = calculatePolicySnapshot(draft);
-    expect(snapshot.warnings).toContain("Production write, delete, or admin access requires human approval.");
+    expect(snapshot.warnings).toContain("Production MCP access should require approval for at least flagged tools.");
     expect(snapshot.readyToCreate).toBe(false);
   });
 

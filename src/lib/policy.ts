@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export const connectedMcpCatalog = [
+  { id: "github-enterprise", label: "GitHub Enterprise", tools: ["read_repository", "create_issue", "merge_pull_request"] },
+  { id: "jira-cloud", label: "Jira Cloud", tools: ["search_issues", "create_ticket", "transition_issue"] },
+  { id: "pagerduty", label: "PagerDuty", tools: ["read_incident", "trigger_incident", "resolve_incident"] },
+  { id: "entra-id", label: "Microsoft Entra ID", tools: ["lookup_user", "revoke_sessions", "reset_mfa"] },
+  { id: "aws-data", label: "AWS Data Platform", tools: ["query_athena", "read_s3_object", "inspect_iam_role"] },
+] as const;
+
+const toolDecisionSchema = z.object({
+  serverId: z.string().trim().min(2),
+  tool: z.string().trim().min(2),
+  decision: z.enum(["allow", "deny", "flag", "log"]),
+});
+
 export const policyDraftSchema = z.object({
   identity: z.object({
     agentName: z.string().trim().min(2).optional(),
@@ -14,18 +28,18 @@ export const policyDraftSchema = z.object({
     securityReviewer: z.string().trim().min(2).optional(),
     escalationContact: z.string().trim().min(2).optional(),
   }).default({}),
-  authentication: z.object({
-    mechanism: z.enum(["workload_identity", "oauth2", "service_account", "api_key"]).optional(),
-    identityProvider: z.string().trim().min(2).optional(),
-    secretStore: z.string().trim().min(2).optional(),
-    tokenLifetimeMinutes: z.number().int().positive().max(1440).optional(),
-    rotationDays: z.number().int().positive().max(365).optional(),
+  runtime: z.object({
+    provider: z.enum(["gcp_vertex_ai", "azure_ai_studio", "aws_bedrock", "openai_enterprise"]).optional(),
+    accountOrProject: z.string().trim().min(2).optional(),
+    modelDeployment: z.string().trim().min(2).optional(),
+    region: z.string().trim().min(2).optional(),
   }).default({}),
-  permissions: z.object({
-    systems: z.array(z.string().trim().min(1)).max(20).optional(),
-    actions: z.array(z.enum(["read", "write", "delete", "admin"])).max(4).optional(),
-    prohibitedActions: z.array(z.string().trim().min(2)).max(20).optional(),
-    humanApproval: z.enum(["never", "high_risk_only", "always"]).optional(),
+  mcp: z.object({
+    serverId: z.string().trim().min(2).optional(),
+    selectedTools: z.array(z.string().trim().min(2)).max(20).optional(),
+    toolPolicies: z.array(toolDecisionSchema).max(40).optional(),
+    defaultDecision: z.enum(["allow", "deny", "flag", "log"]).optional(),
+    humanApproval: z.enum(["never", "flagged_only", "always"]).optional(),
   }).default({}),
   dataHandling: z.object({
     classifications: z.array(z.enum(["public", "internal", "confidential", "restricted"])).max(4).optional(),
@@ -86,12 +100,26 @@ export function createEmptyPolicy(): PolicyDraft {
 }
 
 export function mergePolicyUpdate(draft: PolicyDraft, update: PolicyUpdate): PolicyDraft {
+  const toolPolicies = [...(draft.mcp.toolPolicies ?? [])];
+  for (const incoming of update.mcp?.toolPolicies ?? []) {
+    const existingIndex = toolPolicies.findIndex(
+      (item) => item.serverId === incoming.serverId && item.tool === incoming.tool,
+    );
+    if (existingIndex >= 0) toolPolicies[existingIndex] = incoming;
+    else toolPolicies.push(incoming);
+  }
+
   return policyDraftSchema.parse({
     ...draft,
     identity: { ...draft.identity, ...update.identity },
     ownership: { ...draft.ownership, ...update.ownership },
-    authentication: { ...draft.authentication, ...update.authentication },
-    permissions: { ...draft.permissions, ...update.permissions },
+    runtime: { ...draft.runtime, ...update.runtime },
+    mcp: {
+      ...draft.mcp,
+      ...update.mcp,
+      selectedTools: update.mcp?.selectedTools ?? draft.mcp.selectedTools,
+      toolPolicies,
+    },
     dataHandling: { ...draft.dataHandling, ...update.dataHandling },
     guardrails: { ...draft.guardrails, ...update.guardrails },
     monitoring: { ...draft.monitoring, ...update.monitoring },
@@ -100,9 +128,13 @@ export function mergePolicyUpdate(draft: PolicyDraft, update: PolicyUpdate): Pol
 
 export function calculatePolicySnapshot(draftInput: PolicyDraft, lastAction = "Draft initialized"): PolicySnapshot {
   const draft = policyDraftSchema.parse(draftInput);
-  const elevatedAccess = draft.permissions.actions?.some((action) => ["write", "delete", "admin"].includes(action));
   const production = draft.identity.environment === "production";
   const sensitiveData = draft.dataHandling.classifications?.some((value) => ["confidential", "restricted"].includes(value));
+  const selectedTools = draft.mcp.selectedTools ?? [];
+  const toolPolicies = draft.mcp.toolPolicies ?? [];
+  const hasUnclassifiedTool = selectedTools.some(
+    (tool) => !toolPolicies.some((policy) => policy.tool === tool && policy.serverId === draft.mcp.serverId),
+  );
   const results = [
     section("identity", "Identity", [
       { label: "Agent name", met: hasText(draft.identity.agentName) },
@@ -117,18 +149,18 @@ export function calculatePolicySnapshot(draftInput: PolicyDraft, lastAction = "D
       { label: "Security reviewer", met: hasText(draft.ownership.securityReviewer) },
       { label: "Escalation contact", met: hasText(draft.ownership.escalationContact) },
     ]),
-    section("authentication", "Authentication", [
-      { label: "Authentication mechanism", met: isSet(draft.authentication.mechanism) },
-      { label: "Identity provider", met: hasText(draft.authentication.identityProvider) },
-      { label: "Secret store", met: hasText(draft.authentication.secretStore) },
-      { label: "Token lifetime", met: isSet(draft.authentication.tokenLifetimeMinutes) },
-      { label: "Credential rotation", met: isSet(draft.authentication.rotationDays) },
+    section("runtime", "AI runtime", [
+      { label: "AI provider", met: isSet(draft.runtime.provider) },
+      { label: "Account or project", met: hasText(draft.runtime.accountOrProject) },
+      { label: "Model deployment", met: hasText(draft.runtime.modelDeployment) },
+      { label: "Region", met: hasText(draft.runtime.region) },
     ]),
-    section("permissions", "Permissions", [
-      { label: "Allowed systems", met: hasItems(draft.permissions.systems) },
-      { label: "Allowed actions", met: hasItems(draft.permissions.actions) },
-      { label: "Prohibited actions", met: hasItems(draft.permissions.prohibitedActions) },
-      { label: "Human approval rule", met: isSet(draft.permissions.humanApproval) },
+    section("mcp", "MCP access policy", [
+      { label: "Connected MCP server", met: hasText(draft.mcp.serverId) },
+      { label: "Tools selected", met: hasItems(selectedTools) },
+      { label: "Tool decisions", met: toolPolicies.length > 0 && !hasUnclassifiedTool },
+      { label: "Default tool action", met: isSet(draft.mcp.defaultDecision) },
+      { label: "Human approval rule", met: isSet(draft.mcp.humanApproval) },
     ]),
     section("data", "Data handling", [
       { label: "Data classifications", met: hasItems(draft.dataHandling.classifications) },
@@ -154,7 +186,9 @@ export function calculatePolicySnapshot(draftInput: PolicyDraft, lastAction = "D
   const completed = results.reduce((sum, result) => sum + result.status.completed, 0);
   const total = results.reduce((sum, result) => sum + result.status.total, 0);
   const warnings: string[] = [];
-  if (production && elevatedAccess && draft.permissions.humanApproval === "never") warnings.push("Production write, delete, or admin access requires human approval.");
+  if (production && draft.mcp.defaultDecision === "allow" && draft.mcp.humanApproval === "never") warnings.push("Production MCP access should require approval for at least flagged tools.");
+  if (hasUnclassifiedTool) warnings.push("Every selected MCP tool needs an allow, deny, flag, or log decision.");
+  if (draft.mcp.serverId && !connectedMcpCatalog.some((server) => server.id === draft.mcp.serverId)) warnings.push("The selected MCP server is not in the connected catalog.");
   if (sensitiveData && draft.dataHandling.redactSensitiveLogs === false) warnings.push("Sensitive data must be redacted from logs.");
   if (draft.dataHandling.processesPii && !hasText(draft.dataHandling.residency)) warnings.push("Data residency is required when the agent processes PII.");
   if (production && draft.monitoring.auditLogging === false) warnings.push("Production agents must have audit logging enabled.");
